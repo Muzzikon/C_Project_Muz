@@ -1,31 +1,38 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <kd_tree.h>
+#include "kd_tree.h"
 
-// Функция для обработки операций
-void process_operation(Node** root, char *operation, Point point) {
-   	if (strcmp(operation, "-kd_insert") == 0) {
-        *root = insert(*root, point, 0);
-        printf("Точка (%lf, %lf) вставлена в дерево.\n", point.x, point.y);
+int parse_point(const char *text, Point *point) {
+    return sscanf(text, "%lf,%lf", &point->x, &point->y) == 2;
+}
+
+int load_points_from_csv(const char *filename, Node **root) {
+    FILE *file = fopen(filename, "r");
+    char line[256];
+    int count = 0;
+
+    if (file == NULL) {
+        printf("Не удалось открыть файл: %s\n", filename);
+        return -1;
     }
-	else if (strcmp(operation, "-kd_nearest") == 0) {
-        printf("Операция поиска ближайшего соседа будет реализована позже.\n");
+
+    while (fgets(line, sizeof(line), file) != NULL) {
+        Point point;
+        if (parse_point(line, &point)) {
+            *root = insert(*root, point, 0);
+            count++;
+        }
     }
-	else if (strcmp(operation, "-cmeans") == 0) {
-        printf("Операция Fuzzy C-means будет реализована позже.\n");
-    }
-	else if (strcmp(operation, "-dbscan") == 0) {
-        printf("Операция DBSCAN будет реализована позже.\n");
-    }
-	else {
-        printf("Неизвестная операция: %s\n", operation);
-    }
+
+    fclose(file);
+    return count;
 }
 
 int main(int argc, char *argv[]) {
 	if (argc < 3) {
 		printf("Использование: %s <файл> <операция>\n", argv[0]);
+
 		return 1;
 	}
 
@@ -33,19 +40,48 @@ int main(int argc, char *argv[]) {
 	printf("Операция: %s\n", argv[2]);
 
 	Node* root = NULL;
+	int loaded = load_points_from_csv(argv[1], &root);
 
-   	// Пример точек для вставки, можно заменить на точки из файла
-   	Point p1 = {3.0, 6.0};
-   	Point p2 = {2.0, 7.0};
-   	Point p3 = {17.0, 15.0};
+    if (loaded < 0) {
+        return 1;
+    }
 
-    // Применяем операцию в зависимости от аргумента
-   	process_operation(&root, argv[2], p1);
-   	process_operation(&root, argv[2], p2);
-   	process_operation(&root, argv[2], p3);
+    printf("Загружено точек: %d\n", loaded);
 
-	// Вывод дерева
-	print_tree(root);
+    if (strcmp(argv[2], "-kd_insert") == 0) {
+        printf("Дерево построено из CSV-файла.\n");
+        print_tree(root);
+    }
+    else if (strcmp(argv[2], "-kd_nearest") == 0) {
+        Point target;
+        Point nearest;
+
+        if (argc < 4) {
+            printf("Для -kd_nearest нужно передать точку-запрос, например 1.0,2.0\n");
+            return 1;
+        }
+
+        if (!parse_point(argv[3], &target)) {
+            printf("Неверный формат точки: %s\n", argv[3]);
+            return 1;
+        }
+
+        nearest = nearest_neighbor(root, target, 0);
+        printf("Ближайший сосед к точке (%lf, %lf) — это точка (%lf, %lf)\n", target.x, target.y, nearest.x, nearest.y);
+    }
+    else if (strcmp(argv[2], "-kd_range") == 0) {
+        printf("Операция -kd_range будет исправлена следующим шагом.\n");
+    }
+    else if (strcmp(argv[2], "-cmeans") == 0) {
+        printf("Операция Fuzzy C-means будет реализована позже.\n");
+    }
+    else if (strcmp(argv[2], "-dbscan") == 0) {
+        printf("Операция DBSCAN будет реализована позже.\n");
+    }
+    else {
+        printf("Неизвестная операция: %s\n", argv[2]);
+        return 1;
+    }
 
 	return 0;
 }
