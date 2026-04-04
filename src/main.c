@@ -6,21 +6,21 @@
 // Функция для обработки операций
 void process_operation(Node** root, char *operation, Point point) {
    	if (strcmp(operation, "-kd_insert") == 0) {
-        	*root = insert(*root, point, 0);
-        	printf("Точка (%lf, %lf) вставлена в дерево.\n", point.x, point.y);
-    	}
+        *root = insert(*root, point, 0);
+        printf("Точка (%lf, %lf) вставлена в дерево.\n", point.x, point.y);
+    }
 	else if (strcmp(operation, "-kd_nearest") == 0) {
-        	printf("Операция поиска ближайшего соседа будет реализована позже.\n");
-    	}
+        printf("Операция поиска ближайшего соседа будет реализована позже.\n");
+    }
 	else if (strcmp(operation, "-cmeans") == 0) {
-        	printf("Операция Fuzzy C-means будет реализована позже.\n");
-    	}
+        printf("Операция Fuzzy C-means будет реализована позже.\n");
+    }
 	else if (strcmp(operation, "-dbscan") == 0) {
-        	printf("Операция DBSCAN будет реализована позже.\n");
-    	}
+        printf("Операция DBSCAN будет реализована позже.\n");
+    }
 	else {
-        	printf("Неизвестная операция: %s\n", operation);
-    	}
+        printf("Неизвестная операция: %s\n", operation);
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
    	Point p2 = {2.0, 7.0};
    	Point p3 = {17.0, 15.0};
 
-    	// Применяем операцию в зависимости от аргумента
+    // Применяем операцию в зависимости от аргумента
    	process_operation(&root, argv[2], p1);
    	process_operation(&root, argv[2], p2);
    	process_operation(&root, argv[2], p3);
