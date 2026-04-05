@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <float.h>
+
 #include "kd_tree.h"
 
 int parse_point(const char *text, Point *point) {
@@ -67,10 +69,15 @@ int main(int argc, char *argv[]) {
         }
 
         nearest = nearest_neighbor(root, target, 0);
-        printf("Ближайший сосед к точке (%lf, %lf) — это точка (%lf, %lf)\n", target.x, target.y, nearest.x, nearest.y);
+        if (nearest.x == DBL_MAX && nearest.y == DBL_MAX) {
+            printf("Не найдено ближайшего соседа для точки (%lf, %lf)\n", target.x, target.y);
+        }
+        else {
+            printf("Ближайший сосед к точке (%lf, %lf) — это точка (%lf, %lf)\n", target.x, target.y, nearest.x, nearest.y);
+        }
     }
     else if (strcmp(argv[2], "-kd_range") == 0) {
-        printf("Операция -kd_range будет исправлена следующим шагом.\n");
+        printf("Для -kd_range нужно передать диапазон, например: 1.0,2.0 3.0,4.0\n");
     }
     else if (strcmp(argv[2], "-cmeans") == 0) {
         printf("Операция Fuzzy C-means будет реализована позже.\n");
