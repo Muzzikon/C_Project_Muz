@@ -73,6 +73,30 @@ Point brute_force_nearest_from_csv(const char *filename, Point target) {
     return best;
 }
 
+int brute_force_range_from_csv(const char *filename, Point lower, Point upper, Point *result) {
+    FILE *file = fopen(filename, "r");
+    char line[256];
+    int count = 0;
+
+    if (file == NULL) {
+        return 0;
+    }
+
+    while (fgets(line, sizeof(line), file) != NULL) {
+        Point p;
+        if (parse_csv_point(line, &p)) {
+            if (p.x >= lower.x && p.x <= upper.x &&
+                p.y >= lower.y && p.y <= upper.y) {
+                result[count] = p;
+                count++;
+            }
+        }
+    }
+
+    fclose(file);
+    return count;
+}
+
 int main(int argc, char *argv[]) {
 	if (argc < 3) {
 		printf("Использование: %s <файл> <операция>\n", argv[0]);
@@ -131,7 +155,33 @@ int main(int argc, char *argv[]) {
         }
     }
     else if (strcmp(argv[2], "-kd_range") == 0) {
-        printf("Для -kd_range нужно передать диапазон, например: 1.0,2.0 3.0,4.0\n");
+        Point lower;
+        Point upper;
+        Point kd_result[50000];
+        Point brute_result[50000];
+        int kd_count = 0;
+        int brute_count = 0;
+
+        if (argc < 5) {
+            printf("Для -kd_range нужно передать диапазон, например: 1.0,2.0 3.0,4.0\n");
+            return 1;
+        }
+
+        if (!parse_query_point(argv[3], &lower) || !parse_query_point(argv[4], &upper)) {
+            printf("Неверный формат диапазона\n");
+            return 1;
+        }
+
+        if (lower.x > upper.x || lower.y > upper.y) {
+            printf("Неверный диапазон: нижняя граница должна быть меньше или равна верхней\n");
+            return 1;
+        }
+
+        range_query(root, lower, upper, 0, kd_result, &kd_count);
+        brute_count = brute_force_range_from_csv(argv[1], lower, upper, brute_result);
+
+        printf("KD-Tree: найдено точек в диапазоне: %d\n", kd_count);
+        printf("Brute force: найдено точек в диапазоне: %d\n", brute_count);
     }
     else if (strcmp(argv[2], "-cmeans") == 0) {
         printf("Операция Fuzzy C-means будет реализована позже.\n");
