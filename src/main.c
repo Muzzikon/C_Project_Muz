@@ -31,6 +31,34 @@ int load_points_from_csv(const char *filename, Node **root) {
     return count;
 }
 
+Point brute_force_nearest_from_csv(const char *filename, Point target) {
+    FILE *file = fopen(filename, "r");
+    char line[256];
+    Point best = {DBL_MAX, DBL_MAX};
+    double best_dist = DBL_MAX;
+
+    if (file == NULL) {
+        return best;
+    }
+
+    while (fgets(line, sizeof(line), file) != NULL) {
+        Point p;
+        if (parse_point(line, &p)) {
+            double dx = p.x - target.x;
+            double dy = p.y - target.y;
+            double dist = dx * dx + dy * dy;
+
+            if (dist < best_dist) {
+                best_dist = dist;
+                best = p;
+            }
+        }
+    }
+
+    fclose(file);
+    return best;
+}
+
 int main(int argc, char *argv[]) {
 	if (argc < 3) {
 		printf("Использование: %s <файл> <операция>\n", argv[0]);
@@ -57,6 +85,7 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[2], "-kd_nearest") == 0) {
         Point target;
         Point nearest;
+        Point brute;
 
         if (argc < 4) {
             printf("Для -kd_nearest нужно передать точку-запрос, например 1.0,2.0\n");
@@ -69,11 +98,22 @@ int main(int argc, char *argv[]) {
         }
 
         nearest = nearest_neighbor(root, target, 0);
+        brute = brute_force_nearest_from_csv(argv[1], target);
+
         if (nearest.x == DBL_MAX && nearest.y == DBL_MAX) {
-            printf("Не найдено ближайшего соседа для точки (%lf, %lf)\n", target.x, target.y);
+            printf("KD-Tree: ближайший сосед не найден\n");
         }
         else {
-            printf("Ближайший сосед к точке (%lf, %lf) — это точка (%lf, %lf)\n", target.x, target.y, nearest.x, nearest.y);
+            printf("KD-Tree: ближайший сосед к точке (%lf, %lf) — это точка (%lf, %lf)\n",
+            target.x, target.y, nearest.x, nearest.y);
+        }
+
+        if (brute.x == DBL_MAX && brute.y == DBL_MAX) {
+            printf("Brute force: ближайший сосед не найден\n");
+        }
+        else {
+            printf("Brute force: ближайший сосед к точке (%lf, %lf) — это точка (%lf, %lf)\n",
+            target.x, target.y, brute.x, brute.y);
         }
     }
     else if (strcmp(argv[2], "-kd_range") == 0) {
