@@ -5,8 +5,22 @@
 
 #include "kd_tree.h"
 
-int parse_point(const char *text, Point *point) {
-    return sscanf(text, "%lf,%lf", &point->x, &point->y) == 2;
+int parse_query_point(const char *text, Point *point) {
+    int pos = 0;
+
+    if (sscanf(text, " %lf , %lf %n", &point->x, &point->y, &pos) != 2) {
+        return 0;
+    }
+
+    while (text[pos] == ' ' || text[pos] == '\n' || text[pos] == '\r' || text[pos] == '\t') {
+        pos++;
+    }
+
+    return text[pos] == '\0';
+}
+
+int parse_csv_point(const char *text, Point *point) {
+    return sscanf(text, " %lf , %lf", &point->x, &point->y) == 2;
 }
 
 int load_points_from_csv(const char *filename, Node **root) {
@@ -21,7 +35,7 @@ int load_points_from_csv(const char *filename, Node **root) {
 
     while (fgets(line, sizeof(line), file) != NULL) {
         Point point;
-        if (parse_point(line, &point)) {
+        if (parse_csv_point(line, &point)) {
             *root = insert(*root, point, 0);
             count++;
         }
@@ -43,7 +57,7 @@ Point brute_force_nearest_from_csv(const char *filename, Point target) {
 
     while (fgets(line, sizeof(line), file) != NULL) {
         Point p;
-        if (parse_point(line, &p)) {
+        if (parse_csv_point(line, &p)) {
             double dx = p.x - target.x;
             double dy = p.y - target.y;
             double dist = dx * dx + dy * dy;
@@ -92,7 +106,7 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        if (!parse_point(argv[3], &target)) {
+        if (!parse_query_point(argv[3], &target)) {
             printf("Неверный формат точки: %s\n", argv[3]);
             return 1;
         }
