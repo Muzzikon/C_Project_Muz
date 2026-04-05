@@ -64,7 +64,8 @@ static void nearest_neighbor_recursive(Node* root, Point target, int depth, Poin
     if ((axis == 0 && target.x < root->point.x) || (axis == 1 && target.y < root->point.y)) {
         first_branch = root->left;
         second_branch = root->right;
-    } else {
+    }
+    else {
         first_branch = root->right;
         second_branch = root->left;
     }
@@ -74,7 +75,8 @@ static void nearest_neighbor_recursive(Node* root, Point target, int depth, Poin
     double axis_dist;
     if (axis == 0) {
         axis_dist = target.x - root->point.x;
-    } else {
+    } 
+    else {
         axis_dist = target.y - root->point.y;
     }
 
@@ -84,45 +86,20 @@ static void nearest_neighbor_recursive(Node* root, Point target, int depth, Poin
 }
 
 Point nearest_neighbor(Node* root, Point target, int depth) {
-    Point best_point = {0.0, 0.0};
+    Point best_point = {DBL_MAX, DBL_MAX};
     double best_dist = DBL_MAX;
 
-    if (root == NULL) {
-        return best_point;
+    if (root == NULL) return best_point;
+
+    // Рекурсивный поиск ближайшего соседа
+    nearest_neighbor_recursive(root, target, depth, &best_point, &best_dist);
+
+    // Если точка не была найдена, возвращаем ошибку
+    if (best_point.x == DBL_MAX && best_point.y == DBL_MAX) {
+        printf("Не найден ближайший сосед для точки (%lf, %lf)\n", target.x, target.y);
+        best_point.x = best_point.y = -1.0;  // Можно вернуть ошибочное значение
     }
 
-    // Находим расстояние от текущей точки до целевой точки
-    double current_dist = (target.x - root->point.x) * (target.x - root->point.x) + (target.y - root->point.y) * (target.y - root->point.y);
-
-    // Если текущая точка ближе, обновляем best_dist и best_point
-    if (current_dist < best_dist) {
-        best_dist = current_dist;
-        best_point = root->point;
-    }
-
-    // Определяем, по какой оси будем сравнивать
-    int cd = depth % 2;
-    Node* next_branch = NULL;
-    Node* other_branch = NULL;
-
-    // Выбираем ветку для дальнейшего поиска
-    if ((cd == 0 && target.x < root->point.x) || (cd == 1 && target.y < root->point.y)) {
-        next_branch = root->left;
-        other_branch = root->right;
-    }
-	else {
-        next_branch = root->right;
-        other_branch = root->left;
-    }
-
-    // Рекурсивный поиск в выбранной ветке
-    best_point = nearest_neighbor(next_branch, target, depth + 1);
-
-    // Проверяем, нужно ли рекурсивно проверять другую ветку
-    double axis_dist = (cd == 0) ? (target.x - root->point.x) : (target.y - root->point.y);
-    if (axis_dist * axis_dist < best_dist) {
-        best_point = nearest_neighbor(other_branch, target, depth + 1);
-    }
     return best_point;
 }
 
@@ -143,6 +120,7 @@ void range_query(Node* root, Point lower, Point upper, int depth, Point* result,
     if ((cd == 0 && lower.x < root->point.x) || (cd == 1 && lower.y < root->point.y)) {
         range_query(root->left, lower, upper, depth + 1, result, count);
     }
+
     if ((cd == 0 && upper.x > root->point.x) || (cd == 1 && upper.y > root->point.y)) {
         range_query(root->right, lower, upper, depth + 1, result, count);
     }
