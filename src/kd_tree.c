@@ -8,6 +8,7 @@ Node* insert(Node* root, Point point, int depth) {
         Node* new_node = (Node*)malloc(sizeof(Node));
         new_node->point = point;
         new_node->left = new_node->right = NULL;
+
         return new_node;
     }
 
