@@ -108,9 +108,9 @@ Point nearest_neighbor(Node* root, Point target, int depth) {
     nearest_neighbor_recursive(root, target, depth, &best_point, &best_dist);
 
     // Если точка не была найдена, возвращаем ошибку
-    if (best_point.x == DBL_MAX && best_point.y == DBL_MAX) {
+    if (best_point.x == DBL_MAX && best_point.y == DBL_MAX && best_point.z == DBL_MAX) {
         printf("Не найден ближайший сосед для точки (%lf, %lf)\n", target.x, target.y);
-        best_point.x = best_point.y = -1.0;  // Можно вернуть ошибочное значение
+        best_point.x = best_point.y = best_point.z = -1.0;  // Можно вернуть ошибочное значение
     }
 
     return best_point;
