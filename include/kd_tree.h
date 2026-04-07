@@ -2,7 +2,7 @@
 #define KD_TREE_H
 
 typedef struct Point {
-    double x, y;  // Для 2D-данных
+    double x, y, z;  // Для 3D-данных
 } Point;
 
 typedef struct Node {
