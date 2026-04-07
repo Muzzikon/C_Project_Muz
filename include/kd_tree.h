@@ -15,5 +15,6 @@ Node* insert(Node* root, Point point, int depth);
 void print_tree(Node* root);
 Point nearest_neighbor(Node* root, Point target, int depth);
 void range_query(Node* root, Point lower, Point upper, int depth, Point* result, int* count);
+void free_tree(Node* root);
 
 #endif
