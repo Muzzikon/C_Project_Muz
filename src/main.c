@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <float.h>
+#include <time.h>
 
 #include "kd_tree.h"
 
@@ -97,6 +98,26 @@ int brute_force_range_from_csv(const char *filename, Point lower, Point upper, P
     return count;
 }
 
+int compare_points(const void *a, const void *b) {
+    const Point *p1 = (const Point *)a;
+    const Point *p2 = (const Point *)b;
+
+    if (p1->x < p2->x) return -1;
+    if (p1->x > p2->x) return 1;
+    if (p1->y < p2->y) return -1;
+    if (p1->y > p2->y) return 1;
+    return 0;
+}
+
+int points_equal(Point *a, Point *b, int count) {
+    for (int i = 0; i < count; i++) {
+        if (a[i].x != b[i].x || a[i].y != b[i].y) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 int main(int argc, char *argv[]) {
 	if (argc < 3) {
 		printf("Использование: %s <файл> <операция>\n", argv[0]);
@@ -124,6 +145,10 @@ int main(int argc, char *argv[]) {
         Point target;
         Point nearest;
         Point brute;
+        clock_t kd_start, kd_end;
+        clock_t brute_start, brute_end;
+        double kd_time;
+        double brute_time;
 
         if (argc < 4) {
             printf("Для -kd_nearest нужно передать точку-запрос, например 1.0,2.0\n");
@@ -135,8 +160,16 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
+        kd_start = clock();
         nearest = nearest_neighbor(root, target, 0);
+        kd_end = clock();
+
+        brute_start = clock();
         brute = brute_force_nearest_from_csv(argv[1], target);
+        brute_end = clock();
+
+        kd_time = ((double)(kd_end - kd_start)) / CLOCKS_PER_SEC;
+        brute_time = ((double)(brute_end - brute_start)) / CLOCKS_PER_SEC;
 
         if (nearest.x == DBL_MAX && nearest.y == DBL_MAX) {
             printf("KD-Tree: ближайший сосед не найден\n");
@@ -153,6 +186,9 @@ int main(int argc, char *argv[]) {
             printf("Brute force: ближайший сосед к точке (%lf, %lf) — это точка (%lf, %lf)\n",
             target.x, target.y, brute.x, brute.y);
         }
+
+        printf("Время KD-Tree: %.6f сек.\n", kd_time);
+        printf("Время Brute force: %.6f сек.\n", brute_time);
     }
     else if (strcmp(argv[2], "-kd_range") == 0) {
         Point lower;
@@ -161,6 +197,10 @@ int main(int argc, char *argv[]) {
         Point brute_result[50000];
         int kd_count = 0;
         int brute_count = 0;
+        clock_t kd_start, kd_end;
+        clock_t brute_start, brute_end;
+        double kd_time;
+        double brute_time;
 
         if (argc < 5) {
             printf("Для -kd_range нужно передать диапазон, например: 1.0,2.0 3.0,4.0\n");
@@ -177,11 +217,37 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
+        kd_start = clock();
         range_query(root, lower, upper, 0, kd_result, &kd_count);
+        kd_end = clock();
+
+        brute_start = clock();
         brute_count = brute_force_range_from_csv(argv[1], lower, upper, brute_result);
+        brute_end = clock();
+
+        kd_time = ((double)(kd_end - kd_start)) / CLOCKS_PER_SEC;
+        brute_time = ((double)(brute_end - brute_start)) / CLOCKS_PER_SEC;
 
         printf("KD-Tree: найдено точек в диапазоне: %d\n", kd_count);
         printf("Brute force: найдено точек в диапазоне: %d\n", brute_count);
+
+        printf("Время KD-Tree: %.6f сек.\n", kd_time);
+        printf("Время Brute force: %.6f сек.\n", brute_time);
+
+        if (kd_count == brute_count) {
+            qsort(kd_result, kd_count, sizeof(Point), compare_points);
+            qsort(brute_result, brute_count, sizeof(Point), compare_points);
+
+            if (points_equal(kd_result, brute_result, kd_count)) {
+                printf("Результаты KD-Tree и Brute force полностью совпадают\n");
+            }
+            else {
+                printf("Количество совпадает, но сами точки различаются\n");
+            }
+        }
+        else {
+            printf("Количество найденных точек различается\n");
+        }
     }
     else if (strcmp(argv[2], "-cmeans") == 0) {
         printf("Операция Fuzzy C-means будет реализована позже.\n");
