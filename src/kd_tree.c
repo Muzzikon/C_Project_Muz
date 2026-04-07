@@ -44,7 +44,7 @@ Node* insert(Node* root, Point point, int depth) {
 
 void print_tree(Node* root) {
     if (root == NULL) return;
-    printf("Point: (%lf, %lf)\n", root->point.x, root->point.y);
+    printf("Point: (%lf, %lf, %lf)\n", root->point.x, root->point.y, root->point.z);
     print_tree(root->left);
     print_tree(root->right);
 }
@@ -99,7 +99,7 @@ static void nearest_neighbor_recursive(Node* root, Point target, int depth, Poin
 }
 
 Point nearest_neighbor(Node* root, Point target, int depth) {
-    Point best_point = {DBL_MAX, DBL_MAX};
+    Point best_point = {DBL_MAX, DBL_MAX, DBL_MAX};
     double best_dist = DBL_MAX;
 
     if (root == NULL) return best_point;
@@ -138,4 +138,14 @@ void range_query(Node* root, Point lower, Point upper, int depth, Point* result,
     if ((cd == 0 && upper.x > root->point.x) || (cd == 1 && upper.y > root->point.y) || (cd == 2 && upper.z > root->point.z)) {
         range_query(root->right, lower, upper, depth + 1, result, count);
     }
+}
+
+void free_tree(Node* root) {
+    if (root == NULL) {
+        return;
+    }
+
+    free_tree(root->left);
+    free_tree(root->right);
+    free(root);
 }
