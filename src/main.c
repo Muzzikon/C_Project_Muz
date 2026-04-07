@@ -178,7 +178,7 @@ int main(int argc, char *argv[]) {
         }
         else {
             printf("KD-Tree: ближайший сосед к точке (%lf, %lf, %lf) — это точка (%lf, %lf, %lf)\n",
-            target.x, target.y, nearest.x, nearest.y, nearest.z);
+            target.x, target.y, target.z, nearest.x, nearest.y, nearest.z);
         }
 
         if (brute.x == DBL_MAX && brute.y == DBL_MAX) {
@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
         }
         else {
             printf("Brute force: ближайший сосед к точке (%lf, %lf, %lf) — это точка (%lf, %lf, %lf)\n",
-            target.x, target.y, brute.x, brute.y, brute.z);
+            target.x, target.y, target.z, brute.x, brute.y, brute.z);
         }
 
         printf("Время KD-Tree: %.6f сек.\n", kd_time);
