@@ -49,7 +49,7 @@ int load_points_from_csv(const char *filename, Node **root) {
 Point brute_force_nearest_from_csv(const char *filename, Point target) {
     FILE *file = fopen(filename, "r");
     char line[256];
-    Point best = {DBL_MAX, DBL_MAX};
+    Point best = {DBL_MAX, DBL_MAX, DBL_MAX};
     double best_dist = DBL_MAX;
 
     if (file == NULL) {
@@ -108,12 +108,15 @@ int compare_points(const void *a, const void *b) {
     if (p1->x > p2->x) return 1;
     if (p1->y < p2->y) return -1;
     if (p1->y > p2->y) return 1;
+    if (p1->z < p2->z) return -1;
+    if (p1->z > p2->z) return 1;
+
     return 0;
 }
 
 int points_equal(Point *a, Point *b, int count) {
     for (int i = 0; i < count; i++) {
-        if (a[i].x != b[i].x || a[i].y != b[i].y) {
+        if (a[i].x != b[i].x || a[i].y != b[i].y || a[i].z != b[i].z) {
             return 0;
         }
     }
@@ -153,7 +156,7 @@ int main(int argc, char *argv[]) {
         double brute_time;
 
         if (argc < 4) {
-            printf("Для -kd_nearest нужно передать точку-запрос, например 1.0,2.0\n");
+            printf("Для -kd_nearest нужно передать точку-запрос, например 1.0,2.0,3.0\n");
             return 1;
         }
 
@@ -205,7 +208,7 @@ int main(int argc, char *argv[]) {
         double brute_time;
 
         if (argc < 5) {
-            printf("Для -kd_range нужно передать диапазон, например: 1.0,2.0 3.0,4.0\n");
+            printf("Для -kd_range нужно передать диапазон, например: 1.0,2.0,3.0 4.0,5.0,6.0\n");
             return 1;
         }
 
@@ -214,7 +217,7 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        if (lower.x > upper.x || lower.y > upper.y) {
+        if (lower.x > upper.x || lower.y > upper.y || lower.z > upper.z) {
             printf("Неверный диапазон: нижняя граница должна быть меньше или равна верхней\n");
             return 1;
         }
@@ -261,6 +264,8 @@ int main(int argc, char *argv[]) {
         printf("Неизвестная операция: %s\n", argv[2]);
         return 1;
     }
+
+    free_tree(root);
 
 	return 0;
 }
