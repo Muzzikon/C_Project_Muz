@@ -24,80 +24,85 @@ int parse_csv_point(const char *text, Point *point) {
     return sscanf(text, " %lf , %lf , %lf", &point->x, &point->y, &point->z) == 3;
 }
 
-int load_points_from_csv(const char *filename, Node **root) {
+PointArray load_points_array_from_csv(const char *filename) {
     FILE *file = fopen(filename, "r");
     char line[256];
-    int count = 0;
+    PointArray arr;
+    int capacity = 1024;
+
+    arr.points = NULL;
+    arr.count = -1;
 
     if (file == NULL) {
-        printf("Не удалось открыть файл: %s\n", filename);
-        return -1;
+        return arr;
     }
 
+    arr.points = malloc(capacity * sizeof(Point));
+    if (arr.points == NULL) {
+        fclose(file);
+        return arr;
+    }
+
+    arr.count = 0;
+    
     while (fgets(line, sizeof(line), file) != NULL) {
         Point point;
+
         if (parse_csv_point(line, &point)) {
-            *root = insert(*root, point, 0);
-            count++;
+            if (arr.count >= capacity) {
+                capacity *= 2;
+                Point *tmp = realloc(arr.points, capacity * sizeof(Point));
+                if (tmp == NULL) {
+                    free(arr.points);
+                    fclose(file);
+                    arr.points = NULL;
+                    arr.count = -1;
+                    return arr;
+                }
+                arr.points = tmp;
+            }
+
+            arr.points[arr.count] = point;
+            arr.count++;
         }
     }
 
     fclose(file);
-    return count;
+    return arr;
 }
 
-Point brute_force_nearest_from_csv(const char *filename, Point target) {
-    FILE *file = fopen(filename, "r");
-    char line[256];
+Point brute_force_nearest(Point *points, int count, Point target) {
     Point best = {DBL_MAX, DBL_MAX, DBL_MAX};
     double best_dist = DBL_MAX;
 
-    if (file == NULL) {
-        return best;
-    }
+    for (int i = 0; i < count; i++) {
+        double dx = points[i].x - target.x;
+        double dy = points[i].y - target.y;
+        double dz = points[i].z - target.z;
+        double dist = dx * dx + dy * dy + dz * dz;
 
-    while (fgets(line, sizeof(line), file) != NULL) {
-        Point p;
-        if (parse_csv_point(line, &p)) {
-            double dx = p.x - target.x;
-            double dy = p.y - target.y;
-            double dz = p.z - target.z;
-            double dist = dx * dx + dy * dy + dz * dz;
-
-            if (dist < best_dist) {
-                best_dist = dist;
-                best = p;
-            }
+        if (dist < best_dist) {
+            best_dist = dist;
+            best = points[i];
         }
     }
 
-    fclose(file);
     return best;
 }
 
-int brute_force_range_from_csv(const char *filename, Point lower, Point upper, Point *result) {
-    FILE *file = fopen(filename, "r");
-    char line[256];
-    int count = 0;
+int brute_force_range(Point *points, int count, Point lower, Point upper, Point *result) {
+    int found = 0;
 
-    if (file == NULL) {
-        return 0;
-    }
-
-    while (fgets(line, sizeof(line), file) != NULL) {
-        Point p;
-        if (parse_csv_point(line, &p)) {
-            if (p.x >= lower.x && p.x <= upper.x &&
-                p.y >= lower.y && p.y <= upper.y &&
-                p.z >= lower.z && p.z <= upper.z) {
-                result[count] = p;
-                count++;
-            }
+    for (int i = 0; i < count; i++) {
+        if (points[i].x >= lower.x && points[i].x <= upper.x &&
+            points[i].y >= lower.y && points[i].y <= upper.y &&
+            points[i].z >= lower.z && points[i].z <= upper.z) {
+            result[found] = points[i];
+            found++;
         }
     }
 
-    fclose(file);
-    return count;
+    return found;
 }
 
 int compare_points(const void *a, const void *b) {
@@ -133,14 +138,17 @@ int main(int argc, char *argv[]) {
 	printf("Файл: %s\n", argv[1]);
 	printf("Операция: %s\n", argv[2]);
 
-	Node* root = NULL;
-	int loaded = load_points_from_csv(argv[1], &root);
-
-    if (loaded < 0) {
+    PointArray data = load_points_array_from_csv(argv[1]);
+    if (data.count < 0) {
         return 1;
     }
 
-    printf("Загружено точек: %d\n", loaded);
+    Node *root = NULL;
+    for (int i = 0; i < data.count; i++) {
+        root = insert(root, data.points[i], 0);
+    }
+
+    printf("Загружено точек: %d\n", data.count);
 
     if (strcmp(argv[2], "-kd_insert") == 0) {
         printf("Дерево построено из CSV-файла.\n");
@@ -157,6 +165,9 @@ int main(int argc, char *argv[]) {
 
         if (argc < 4) {
             printf("Для -kd_nearest нужно передать точку-запрос, например 1.0,2.0,3.0\n");
+
+            free_tree(root);
+            free(data.points);
             return 1;
         }
 
@@ -170,7 +181,7 @@ int main(int argc, char *argv[]) {
         kd_end = clock();
 
         brute_start = clock();
-        brute = brute_force_nearest_from_csv(argv[1], target);
+        brute = brute_force_nearest(data.points, data.count, target);
         brute_end = clock();
 
         kd_time = ((double)(kd_end - kd_start)) / CLOCKS_PER_SEC;
@@ -227,7 +238,7 @@ int main(int argc, char *argv[]) {
         kd_end = clock();
 
         brute_start = clock();
-        brute_count = brute_force_range_from_csv(argv[1], lower, upper, brute_result);
+        brute_count = brute_force_range(data.points, data.count, lower, upper, brute_result);
         brute_end = clock();
 
         kd_time = ((double)(kd_end - kd_start)) / CLOCKS_PER_SEC;
@@ -266,6 +277,7 @@ int main(int argc, char *argv[]) {
     }
 
     free_tree(root);
+    free(data.points);
 
 	return 0;
 }
