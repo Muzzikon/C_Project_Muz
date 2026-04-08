@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "kd_tree.h"
+#include "dbscan.h"
 
 int parse_query_point(const char *text, Point *point) {
     int pos = 0;
@@ -269,7 +270,47 @@ int main(int argc, char *argv[]) {
         printf("Операция Fuzzy C-means будет реализована позже.\n");
     }
     else if (strcmp(argv[2], "-dbscan") == 0) {
-        printf("Операция DBSCAN будет реализована позже.\n");
+        double eps;
+        int min_pts;
+        DBSCANResult result;
+        clock_t dbscan_start, dbscan_end;
+        double dbscan_time;
+
+        if (argc < 5) {
+            printf("Для -dbscan нужно передать eps и min_pts, например: 0.5 5\n");
+            free_tree(root);
+            free(data.points);
+            return 1;
+        }
+
+        eps = atof(argv[3]);
+        min_pts = atoi(argv[4]);
+
+        if (eps <= 0.0 || min_pts <= 0) {
+            printf("Неверные параметры DBSCAN: eps > 0, min_pts > 0\n");
+            free_tree(root);
+            free(data.points);
+
+            return 1;
+        }
+
+        dbscan_start = clock();
+        result = dbscan(data.points, data.count, eps, min_pts);
+        dbscan_end = clock();
+
+        if (result.labels == NULL) {
+            printf("Не удалось выполнить DBSCAN\n");
+            free_tree(root);
+            free(data.points);
+            return 1;
+        }
+
+        dbscan_time = ((double)(dbscan_end - dbscan_start)) / CLOCKS_PER_SEC;
+
+        print_dbscan_summary(&result, data.count);
+        printf("Время DBSCAN: %.6f сек.\n", dbscan_time);
+
+        free_dbscan_result(&result);
     }
     else {
         printf("Неизвестная операция: %s\n", argv[2]);
