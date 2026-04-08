@@ -109,7 +109,7 @@ Point nearest_neighbor(Node* root, Point target, int depth) {
 
     // Если точка не была найдена, возвращаем ошибку
     if (best_point.x == DBL_MAX && best_point.y == DBL_MAX && best_point.z == DBL_MAX) {
-        printf("Не найден ближайший сосед для точки (%lf, %lf)\n", target.x, target.y);
+        printf("Не найден ближайший сосед для точки (%lf, %lf, %lf)\n", target.x, target.y, target.z);
         best_point.x = best_point.y = best_point.z = -1.0;  // Можно вернуть ошибочное значение
     }
 
