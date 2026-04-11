@@ -1,3 +1,5 @@
+// Главный файл программы.
+// Отвечает за загрузку точек, запуск режимов KD-дерева и DBSCAN, а также замер времени.
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -7,6 +9,8 @@
 #include "kd_tree.h"
 #include "dbscan.h"
 
+// Разбор точки из аргумента командной строки.
+// Ожидается формат: x,y,z
 int parse_query_point(const char *text, Point *point) {
     int pos = 0;
 
@@ -21,10 +25,13 @@ int parse_query_point(const char *text, Point *point) {
     return text[pos] == '\0';
 }
 
+// Разбор одной точки из строки CSV-файла.
 int parse_csv_point(const char *text, Point *point) {
     return sscanf(text, " %lf , %lf , %lf", &point->x, &point->y, &point->z) == 3;
 }
 
+// Чтение всех точек из CSV в динамический массив.
+// Массив потом используется и для KD-дерева, и для brute force, и для DBSCAN.
 PointArray load_points_array_from_csv(const char *filename) {
     FILE *file = fopen(filename, "r");
     char line[256];
@@ -72,6 +79,8 @@ PointArray load_points_array_from_csv(const char *filename) {
     return arr;
 }
 
+// Поиск ближайшей точки полным перебором.
+// Используется для проверки корректности результата KD-дерева.
 Point brute_force_nearest(Point *points, int count, Point target) {
     Point best = {DBL_MAX, DBL_MAX, DBL_MAX};
     double best_dist = DBL_MAX;
@@ -91,6 +100,8 @@ Point brute_force_nearest(Point *points, int count, Point target) {
     return best;
 }
 
+// Поиск точек в диапазоне полным перебором.
+// Нужен как эталон для проверки диапазонного запроса KD-дерева.
 int brute_force_range(Point *points, int count, Point lower, Point upper, Point *result) {
     int found = 0;
 
@@ -106,6 +117,7 @@ int brute_force_range(Point *points, int count, Point lower, Point upper, Point 
     return found;
 }
 
+// Сравнение двух точек для сортировки результатов перед проверкой совпадения.
 int compare_points(const void *a, const void *b) {
     const Point *p1 = (const Point *)a;
     const Point *p2 = (const Point *)b;
@@ -120,6 +132,7 @@ int compare_points(const void *a, const void *b) {
     return 0;
 }
 
+// Проверка, что два массива точек полностью совпадают по координатам.
 int points_equal(Point *a, Point *b, int count) {
     for (int i = 0; i < count; i++) {
         if (a[i].x != b[i].x || a[i].y != b[i].y || a[i].z != b[i].z) {
@@ -129,6 +142,8 @@ int points_equal(Point *a, Point *b, int count) {
     return 1;
 }
 
+// Точка входа в программу.
+// Поддерживает режимы: построение KD-дерева, nearest, range и DBSCAN.
 int main(int argc, char *argv[]) {
 	if (argc < 3) {
 		printf("Использование: %s <файл> <операция>\n", argv[0]);
@@ -139,6 +154,7 @@ int main(int argc, char *argv[]) {
 	printf("Файл: %s\n", argv[1]);
 	printf("Операция: %s\n", argv[2]);
 
+    // Сначала загружаем все точки в память, затем по ним строим KD-дерево.
     PointArray data = load_points_array_from_csv(argv[1]);
     if (data.count < 0) {
         return 1;
@@ -155,6 +171,7 @@ int main(int argc, char *argv[]) {
         printf("Дерево построено из CSV-файла.\n");
         print_tree(root);
     }
+    // Режим поиска ближайшего соседа с сравнением KD-Tree и brute force.
     else if (strcmp(argv[2], "-kd_nearest") == 0) {
         Point target;
         Point nearest;
@@ -207,6 +224,7 @@ int main(int argc, char *argv[]) {
         printf("Время KD-Tree: %.6f сек.\n", kd_time);
         printf("Время Brute force: %.6f сек.\n", brute_time);
     }
+    // Режим диапазонного поиска с проверкой совпадения результатов.
     else if (strcmp(argv[2], "-kd_range") == 0) {
         Point lower;
         Point upper;
@@ -269,6 +287,7 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[2], "-cmeans") == 0) {
         printf("Операция Fuzzy C-means будет реализована позже.\n");
     }
+    // Режим кластеризации DBSCAN с выводом краткой статистики и времени работы.
     else if (strcmp(argv[2], "-dbscan") == 0) {
         double eps;
         int min_pts;
@@ -322,6 +341,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // Освобождаем память перед завершением программы.
     free_tree(root);
     free(data.points);
 
