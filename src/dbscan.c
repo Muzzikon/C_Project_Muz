@@ -183,3 +183,29 @@ void print_dbscan_summary(const DBSCANResult *result, int point_count) {
     printf("DBSCAN: найдено кластеров: %d\n", result->cluster_count);
     printf("DBSCAN: шумовых точек: %d\n", result->noise_count);
 }
+
+int save_dbscan_result_csv(const char *filename, Point *points, int count, const DBSCANResult *result) {
+    FILE *file;
+
+    if (filename == NULL || points == NULL || result == NULL || result->labels == NULL || count < 0) {
+        return 0;
+    }
+
+    file = fopen(filename, "w");
+    if (file == NULL) {
+        return 0;
+    }
+
+    fprintf(file, "x,y,z,cluster\n");
+
+    for (int i = 0; i < count; i++) {
+        fprintf(file, "%.6f,%.6f,%.6f,%d\n",
+                points[i].x,
+                points[i].y,
+                points[i].z,
+                result->labels[i]);
+    }
+
+    fclose(file);
+    return 1;
+}
