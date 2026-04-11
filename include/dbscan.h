@@ -21,5 +21,6 @@ typedef struct {
 DBSCANResult dbscan(Point *points, int count, double eps, int min_pts);
 void free_dbscan_result(DBSCANResult *result);
 void print_dbscan_summary(const DBSCANResult *result, int point_count);
+int save_dbscan_result_csv(const char *filename, Point *points, int count, const DBSCANResult *result);
 
 #endif
