@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+
 #include "dbscan.h"
 
 static double distance_squared(Point a, Point b) {
@@ -10,21 +11,19 @@ static double distance_squared(Point a, Point b) {
     return dx * dx + dy * dy + dz * dz;
 }
 
-static int region_query(Point *points, int count, int point_index, double eps_sq, int *neighbors) {
-    int found = 0;
+static int region_query(Node *root, Point *points, int count, int point_index, double eps_sq, int *neighbors) {
 
-    for (int i = 0; i < count; i++) {
-        if (distance_squared(points[point_index], points[i]) <= eps_sq) {
-            neighbors[found] = i;
-            found++;
-        }
-    }
+    Point target = points[point_index];
+    Point lower = {target.x - eps_sq, target.y - eps_sq, target.z - eps_sq};
+    Point upper = {target.x + eps_sq, target.y + eps_sq, target.z + eps_sq};
+
+    int found = 0;
+    range_query(root, lower, upper, 0, neighbors, &found);
 
     return found;
 }
 
-static void expand_cluster(Point *points, int count, int point_index, int *labels,
-                           int cluster_id, double eps_sq, int min_pts) {
+static void expand_cluster(Point *points, int count, int point_index, int *labels, int cluster_id, double eps_sq, int min_pts) {
     int *queue = malloc(count * sizeof(int));
     int *neighbors = malloc(count * sizeof(int));
     int *in_queue = calloc(count, sizeof(int));
@@ -39,7 +38,7 @@ static void expand_cluster(Point *points, int count, int point_index, int *label
         return;
     }
 
-    neighbor_count = region_query(points, count, point_index, eps_sq, neighbors);
+    neighbor_count = region_query(root, points, count, point_index, eps_sq, neighbors);
 
     labels[point_index] = cluster_id;
 
