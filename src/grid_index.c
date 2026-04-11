@@ -1,12 +1,16 @@
+// Реализация пространственной сетки для ускорения поиска соседей.
+// Используется в DBSCAN вместо полного перебора всех точек.
 #include <stdlib.h>
 #include <math.h>
 
 #include "grid_index.h"
 
+// Перевод вещественной координаты точки в индекс ячейки сетки.
 static int grid_coord(double value, double cell_size) {
     return (int)floor(value / cell_size);
 }
 
+// Хеш-функция для трёх целочисленных координат ячейки.
 static unsigned long hash_coords(int cx, int cy, int cz) {
     unsigned long x = (unsigned long)(unsigned int)cx;
     unsigned long y = (unsigned long)(unsigned int)cy;
@@ -15,6 +19,7 @@ static unsigned long hash_coords(int cx, int cy, int cz) {
     return x * 73856093u ^ y * 19349663u ^ z * 83492791u;
 }
 
+// Поиск уже существующей ячейки в хеш-таблице.
 static GridCell *find_cell(const GridIndex *grid, int cx, int cy, int cz) {
     unsigned long hash = hash_coords(cx, cy, cz);
     int bucket = (int)(hash % (unsigned long)grid->bucket_count);
@@ -30,6 +35,7 @@ static GridCell *find_cell(const GridIndex *grid, int cx, int cy, int cz) {
     return NULL;
 }
 
+// Возвращает существующую ячейку или создаёт новую, если её ещё нет.
 static GridCell *get_or_create_cell(GridIndex *grid, int cx, int cy, int cz) {
     unsigned long hash = hash_coords(cx, cy, cz);
     int bucket = (int)(hash % (unsigned long)grid->bucket_count);
@@ -57,6 +63,8 @@ static GridCell *get_or_create_cell(GridIndex *grid, int cx, int cy, int cz) {
     return new_cell;
 }
 
+// Построение пространственной сетки по массиву точек.
+// Каждая точка попадает в ячейку, определяемую её координатами.
 GridIndex build_grid_index(Point *points, int count, double cell_size) {
     GridIndex grid;
     grid.buckets = NULL;
@@ -78,6 +86,7 @@ GridIndex build_grid_index(Point *points, int count, double cell_size) {
         return grid;
     }
 
+    // Раскладываем все точки по ячейкам сетки и сохраняем их индексы.
     for (int i = 0; i < count; i++) {
         int cx = grid_coord(points[i].x, cell_size);
         int cy = grid_coord(points[i].y, cell_size);
@@ -103,6 +112,7 @@ GridIndex build_grid_index(Point *points, int count, double cell_size) {
     return grid;
 }
 
+// Освобождение памяти всех ячеек и списков точек внутри сетки.
 void free_grid_index(GridIndex *grid) {
     if (grid == NULL || grid->buckets == NULL) {
         return;
@@ -132,6 +142,8 @@ void free_grid_index(GridIndex *grid) {
     grid->cell_size = 0.0;
 }
 
+// Поиск соседей точки через пространственную сетку.
+// Проверяются только текущая и соседние ячейки, после чего идёт точная фильтрация по расстоянию.
 int grid_region_query(const GridIndex *grid, Point *points, int point_index, double eps_sq, int *neighbors) {
     if (grid == NULL || grid->buckets == NULL || points == NULL || neighbors == NULL || eps_sq < 0.0) {
         return 0;
@@ -145,6 +157,7 @@ int grid_region_query(const GridIndex *grid, Point *points, int point_index, dou
 
     int found = 0;
 
+    // Для 3D-случая достаточно проверить 27 ячеек: текущую и соседние по всем осям.
     for (int dx = -1; dx <= 1; dx++) {
         for (int dy = -1; dy <= 1; dy++) {
             for (int dz = -1; dz <= 1; dz++) {
