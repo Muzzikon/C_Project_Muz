@@ -1,3 +1,5 @@
+// Реализация DBSCAN для 3D-точек.
+// Поиск соседей ускоряется через пространственную сетку GridIndex.
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -5,11 +7,16 @@
 #include "dbscan.h"
 #include "grid_index.h"
 
+// Обёртка над поиском соседей через пространственную сетку.
 static int region_query(const GridIndex *grid, Point *points, int point_index, double eps_sq, int *neighbors) {
     return grid_region_query(grid, points, point_index, eps_sq, neighbors);
 }
 
+// Расширение одного кластера из стартовой точки.
+// Соседи добавляются в очередь, после чего кластер растёт, пока есть плотные точки.
 static int expand_cluster(const GridIndex *grid, Point *points, int count, int point_index, int *labels, int cluster_id, double eps_sq, int min_pts) {
+    // queue хранит точки для обхода, neighbors — соседей текущей точки,
+    // in_queue не даёт добавлять одну и ту же точку в очередь несколько раз.
     int *queue = malloc(count * sizeof(int));
     int *neighbors = malloc(count * sizeof(int));
     int *in_queue = calloc(count, sizeof(int));
@@ -37,6 +44,7 @@ static int expand_cluster(const GridIndex *grid, Point *points, int count, int p
         }
     }
 
+    // Обходим очередь точек кластера, добавляя новые плотные точки и их соседей.
     while (queue_start < queue_end) {
         int current = queue[queue_start];
         queue_start++;
@@ -73,6 +81,8 @@ static int expand_cluster(const GridIndex *grid, Point *points, int count, int p
     return 1;
 }
 
+// Основная функция DBSCAN.
+// Сначала строится пространственная сетка, затем все точки размечаются как кластер или шум.
 DBSCANResult dbscan(Point *points, int count, double eps, int min_pts) {
     DBSCANResult result;
     GridIndex grid;
@@ -83,6 +93,7 @@ DBSCANResult dbscan(Point *points, int count, double eps, int min_pts) {
     result.cluster_count = 0;
     result.noise_count = 0;
 
+    // Строим пространственную сетку один раз, чтобы ускорить повторяющиеся запросы соседей.
     grid = build_grid_index(points, count, eps);
     if (grid.buckets == NULL) {
         return result;
@@ -98,6 +109,7 @@ DBSCANResult dbscan(Point *points, int count, double eps, int min_pts) {
         result.labels[i] = UNVISITED;
     }
 
+    // Проходим по всем точкам: если точка ещё не посещена, пытаемся начать из неё новый кластер.
     for (int i = 0; i < count; i++) {
         if (result.labels[i] != UNVISITED) {
             continue;
@@ -148,6 +160,7 @@ DBSCANResult dbscan(Point *points, int count, double eps, int min_pts) {
     return result;
 }
 
+// Освобождение памяти результата DBSCAN.
 void free_dbscan_result(DBSCANResult *result) {
     if (result == NULL) {
         return;
@@ -159,6 +172,7 @@ void free_dbscan_result(DBSCANResult *result) {
     result->noise_count = 0;
 }
 
+// Краткий вывод статистики кластеризации.
 void print_dbscan_summary(const DBSCANResult *result, int point_count) {
     if (result == NULL || result->labels == NULL) {
         printf("Результат DBSCAN недоступен\n");
