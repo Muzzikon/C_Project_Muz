@@ -4,21 +4,21 @@
 
 #include "dbscan.h"
 
-static double distance_squared(Point a, Point b) {
-    double dx = a.x - b.x;
-    double dy = a.y - b.y;
-    double dz = a.z - b.z;
-    return dx * dx + dy * dy + dz * dz;
-}
-
-static int region_query(Node *root, Point *points, int count, int point_index, double eps_sq, int *neighbors) {
-
-    Point target = points[point_index];
-    Point lower = {target.x - eps_sq, target.y - eps_sq, target.z - eps_sq};
-    Point upper = {target.x + eps_sq, target.y + eps_sq, target.z + eps_sq};
-
+static int region_query(Point *points, int count, int point_index, double eps_sq, int *neighbors) {
+    
     int found = 0;
-    range_query(root, lower, upper, 0, neighbors, &found);
+
+    for (int i = 0; i < count; i++) {
+        double dx = points[point_index].x - points[i].x;
+        double dy = points[point_index].y - points[i].y;
+        double dz = points[point_index].z - points[i].z;
+        double dist_sq = dx * dx + dy * dy + dz * dz;
+
+        if (dist_sq <= eps_sq) {
+            neighbors[found] = i;
+            found++;
+        }
+    }
 
     return found;
 }
@@ -38,7 +38,7 @@ static void expand_cluster(Point *points, int count, int point_index, int *label
         return;
     }
 
-    neighbor_count = region_query(root, points, count, point_index, eps_sq, neighbors);
+    neighbor_count = region_query(points, count, point_index, eps_sq, neighbors);
 
     labels[point_index] = cluster_id;
 
