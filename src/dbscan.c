@@ -3,27 +3,13 @@
 #include <math.h>
 
 #include "dbscan.h"
+#include "grid_index.h"
 
-static int region_query(Point *points, int count, int point_index, double eps_sq, int *neighbors) {
-    
-    int found = 0;
-
-    for (int i = 0; i < count; i++) {
-        double dx = points[point_index].x - points[i].x;
-        double dy = points[point_index].y - points[i].y;
-        double dz = points[point_index].z - points[i].z;
-        double dist_sq = dx * dx + dy * dy + dz * dz;
-
-        if (dist_sq <= eps_sq) {
-            neighbors[found] = i;
-            found++;
-        }
-    }
-
-    return found;
+static int region_query(const GridIndex *grid, Point *points, int point_index, double eps_sq, int *neighbors) {
+    return grid_region_query(grid, points, point_index, eps_sq, neighbors);
 }
 
-static void expand_cluster(Point *points, int count, int point_index, int *labels, int cluster_id, double eps_sq, int min_pts) {
+static int expand_cluster(const GridIndex *grid, Point *points, int count, int point_index, int *labels, int cluster_id, double eps_sq, int min_pts) {
     int *queue = malloc(count * sizeof(int));
     int *neighbors = malloc(count * sizeof(int));
     int *in_queue = calloc(count, sizeof(int));
@@ -35,11 +21,10 @@ static void expand_cluster(Point *points, int count, int point_index, int *label
         free(queue);
         free(neighbors);
         free(in_queue);
-        return;
+        return 0;
     }
 
-    neighbor_count = region_query(points, count, point_index, eps_sq, neighbors);
-
+    neighbor_count = region_query(grid, points, point_index, eps_sq, neighbors);
     labels[point_index] = cluster_id;
 
     for (int i = 0; i < neighbor_count; i++) {
@@ -66,7 +51,7 @@ static void expand_cluster(Point *points, int count, int point_index, int *label
 
         labels[current] = cluster_id;
 
-        int current_neighbor_count = region_query(points, count, current, eps_sq, neighbors);
+        int current_neighbor_count = region_query(grid, points, current, eps_sq, neighbors);
 
         if (current_neighbor_count >= min_pts) {
             for (int i = 0; i < current_neighbor_count; i++) {
@@ -84,23 +69,28 @@ static void expand_cluster(Point *points, int count, int point_index, int *label
     free(queue);
     free(neighbors);
     free(in_queue);
+
+    return 1;
 }
 
 DBSCANResult dbscan(Point *points, int count, double eps, int min_pts) {
     DBSCANResult result;
+    GridIndex grid;
     double eps_sq = eps * eps;
     int cluster_id = 0;
-
+    
     result.labels = NULL;
     result.cluster_count = 0;
     result.noise_count = 0;
 
-    if (points == NULL || count <= 0 || eps <= 0.0 || min_pts <= 0) {
+    grid = build_grid_index(points, count, eps);
+    if (grid.buckets == NULL) {
         return result;
     }
 
     result.labels = malloc(count * sizeof(int));
     if (result.labels == NULL) {
+        free_grid_index(&grid);
         return result;
     }
 
@@ -124,12 +114,21 @@ DBSCANResult dbscan(Point *points, int count, double eps, int min_pts) {
             return result;
         }
 
-        neighbor_count = region_query(points, count, i, eps_sq, neighbors);
+        neighbor_count = region_query(&grid, points, i, eps_sq, neighbors);
 
         if (neighbor_count < min_pts) {
             result.labels[i] = NOISE;
-        } else {
-            expand_cluster(points, count, i, result.labels, cluster_id, eps_sq, min_pts);
+        }
+        else {
+            if (!expand_cluster(&grid, points, count, i, result.labels, cluster_id, eps_sq, min_pts)) {
+                free(neighbors);
+                free(result.labels);
+                result.labels = NULL;
+                result.cluster_count = 0;
+                result.noise_count = 0;
+                free_grid_index(&grid);
+                return result;
+            }
             cluster_id++;
         }
 
@@ -144,7 +143,8 @@ DBSCANResult dbscan(Point *points, int count, double eps, int min_pts) {
             result.noise_count++;
         }
     }
-
+    
+    free_grid_index(&grid);
     return result;
 }
 
