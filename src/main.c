@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
 
     Node *root = NULL;
     for (int i = 0; i < data.count; i++) {
-        root = insert(root, data.points[i], 0);
+        root = insert(root, data.points[i], i, 0);
     }
 
     printf("Загружено точек: %d\n", data.count);
@@ -278,8 +278,10 @@ int main(int argc, char *argv[]) {
 
         if (argc < 5) {
             printf("Для -dbscan нужно передать eps и min_pts, например: 0.5 5\n");
+
             free_tree(root);
             free(data.points);
+
             return 1;
         }
 
@@ -288,6 +290,7 @@ int main(int argc, char *argv[]) {
 
         if (eps <= 0.0 || min_pts <= 0) {
             printf("Неверные параметры DBSCAN: eps > 0, min_pts > 0\n");
+
             free_tree(root);
             free(data.points);
 
@@ -300,8 +303,10 @@ int main(int argc, char *argv[]) {
 
         if (result.labels == NULL) {
             printf("Не удалось выполнить DBSCAN\n");
+
             free_tree(root);
             free(data.points);
+
             return 1;
         }
 
