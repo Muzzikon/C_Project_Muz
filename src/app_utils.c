@@ -99,6 +99,67 @@ char *make_dbscan_output_filename(const char *input_filename) {
     }
 }
 
+char *make_range_output_filename(const char *input_filename) {
+    const char *base;
+    const char *dot;
+    size_t name_len;
+    char *output_filename;
+    int counter = 0;
+
+    if (input_filename == NULL) {
+        return NULL;
+    }
+
+    base = strrchr(input_filename, '/');
+    if (base != NULL) {
+        base++;
+    }
+    else {
+        base = input_filename;
+    }
+
+    dot = strrchr(base, '.');
+    if (dot != NULL) {
+        name_len = (size_t)(dot - base);
+    }
+    else {
+        name_len = strlen(base);
+    }
+
+    output_filename = malloc(name_len + strlen("_range.csv") + 1);
+    if (output_filename == NULL) {
+        return NULL;
+    }
+
+    memcpy(output_filename, base, name_len);
+    output_filename[name_len] = '\0';
+    strcat(output_filename, "_range.csv");
+
+    if (!file_exists(output_filename)) {
+        return output_filename;
+    }
+
+    free(output_filename);
+
+    while (1) {
+        int needed = snprintf(NULL, 0, "%.*s_range(%d).csv", (int)name_len, base, counter + 1);
+        output_filename = malloc((size_t)needed + 1);
+
+        if (output_filename == NULL) {
+            return NULL;
+        }
+
+        snprintf(output_filename, (size_t)needed + 1, "%.*s_range(%d).csv", (int)name_len, base, counter + 1);
+
+        if (!file_exists(output_filename)) {
+            return output_filename;
+        }
+
+        free(output_filename);
+        counter++;
+    }
+}
+
 // Чтение всех точек из CSV в динамический массив.
 // Массив потом используется и для KD-дерева, и для brute force, и для DBSCAN.
 PointArray load_points_array_from_csv(const char *filename) {
@@ -208,5 +269,30 @@ int points_equal(Point *a, Point *b, int count) {
             return 0;
         }
     }
+    return 1;
+}
+
+int save_points_csv(const char *filename, Point *points, int count) {
+    FILE *file;
+
+    if (filename == NULL || points == NULL || count < 0) {
+        return 0;
+    }
+
+    file = fopen(filename, "w");
+    if (file == NULL) {
+        return 0;
+    }
+
+    fprintf(file, "x,y,z\n");
+
+    for (int i = 0; i < count; i++) {
+        fprintf(file, "%.6f,%.6f,%.6f\n",
+                points[i].x,
+                points[i].y,
+                points[i].z);
+    }
+
+    fclose(file);
     return 1;
 }
