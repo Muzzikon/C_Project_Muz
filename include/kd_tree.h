@@ -33,8 +33,4 @@ void range_query_indices(Node* root, Point lower, Point upper, int depth, int* r
 
 void free_tree(Node* root);
 
-// Вспомогательные brute force-функции для проверки корректности результатов.
-Point brute_force_nearest(Point *points, int count, Point target);
-int brute_force_range(Point *points, int count, Point lower, Point upper, Point *result);
-
 #endif
