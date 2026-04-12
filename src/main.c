@@ -104,6 +104,7 @@ int main(int argc, char *argv[]) {
         clock_t brute_start, brute_end;
         double kd_time;
         double brute_time;
+        char *output_filename;
 
         if (argc < 5) {
             printf("Для -kd_range нужно передать диапазон, например: 1.0,2.0,3.0 4.0,5.0,6.0\n");
@@ -150,6 +151,29 @@ int main(int argc, char *argv[]) {
         }
         else {
             printf("Количество найденных точек различается\n");
+        }
+
+        output_filename = make_range_output_filename(argv[1]);
+
+        if (output_filename == NULL) {
+            printf("Не удалось сформировать имя выходного файла для диапазонного поиска\n");
+        }
+        else {
+            if (save_points_csv(output_filename, kd_result, kd_count)) {
+                printf("Результат диапазонного поиска сохранён в %s\n", output_filename);
+            }
+            else {
+                printf("Не удалось сохранить результат диапазонного поиска в CSV\n");
+            }
+
+            free(output_filename);
+        }
+
+        if (save_points_csv("kd_range_result.csv", kd_result, kd_count)) {
+            printf("Результат диапазонного поиска сохранён в kd_range_result.csv\n");
+        }
+        else {
+            printf("Не удалось сохранить результат диапазонного поиска\n");
         }
     }
     else if (strcmp(argv[2], "-cmeans") == 0) {
