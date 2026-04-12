@@ -25,9 +25,81 @@ int parse_query_point(const char *text, Point *point) {
     return text[pos] == '\0';
 }
 
+int file_exists(const char *filename) {
+    FILE *file = fopen(filename, "r");
+
+    if (file != NULL) {
+        fclose(file);
+        return 1;
+    }
+
+    return 0;
+}
+
 // Разбор одной точки из строки CSV-файла.
 int parse_csv_point(const char *text, Point *point) {
     return sscanf(text, " %lf , %lf , %lf", &point->x, &point->y, &point->z) == 3;
+}
+
+char *make_dbscan_output_filename(const char *input_filename) {
+    const char *base;
+    const char *dot;
+    size_t name_len;
+    char *output_filename;
+    int counter = 0;
+
+    if (input_filename == NULL) {
+        return NULL;
+    }
+
+    base = strrchr(input_filename, '/');
+    if (base != NULL) {
+        base++;
+    }
+    else {
+        base = input_filename;
+    }
+
+    dot = strrchr(base, '.');
+    if (dot != NULL) {
+        name_len = (size_t)(dot - base);
+    }
+    else {
+        name_len = strlen(base);
+    }
+
+    output_filename = malloc(name_len + strlen("_dbscan.csv") + 1);
+    if (output_filename == NULL) {
+        return NULL;
+    }
+
+    memcpy(output_filename, base, name_len);
+    output_filename[name_len] = '\0';
+    strcat(output_filename, "_dbscan.csv");
+
+    if (!file_exists(output_filename)) {
+        return output_filename;
+    }
+
+    free(output_filename);
+
+    while (1) {
+        int needed = snprintf(NULL, 0, "%.*s_dbscan(%d).csv", (int)name_len, base, counter + 1);
+        output_filename = malloc((size_t)needed + 1);
+
+        if (output_filename == NULL) {
+            return NULL;
+        }
+
+        snprintf(output_filename, (size_t)needed + 1, "%.*s_dbscan(%d).csv", (int)name_len, base, counter + 1);
+
+        if (!file_exists(output_filename)) {
+            return output_filename;
+        }
+
+        free(output_filename);
+        counter++;
+    }
 }
 
 // Чтение всех точек из CSV в динамический массив.
@@ -333,6 +405,22 @@ int main(int argc, char *argv[]) {
 
         print_dbscan_summary(&result, data.count);
         printf("Время DBSCAN: %.6f сек.\n", dbscan_time);
+
+        char *output_filename = make_dbscan_output_filename(argv[1]);
+
+        if (output_filename == NULL) {
+            printf("Не удалось сформировать имя выходного файла\n");
+        }
+        else {
+            if (save_dbscan_result_csv(output_filename, data.points, data.count, &result)) {
+                printf("Результат DBSCAN сохранён в %s\n", output_filename);
+            }
+            else {
+                printf("Не удалось сохранить результат DBSCAN в CSV\n");
+            }
+    
+            free(output_filename);
+        }
 
         free_dbscan_result(&result);
     }
