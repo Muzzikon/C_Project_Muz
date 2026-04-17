@@ -96,8 +96,8 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[2], "-kd_range") == 0) {
         Point lower;
         Point upper;
-        Point kd_result[50000];
-        Point brute_result[50000];
+        Point *kd_result;
+        Point *brute_result;
         int kd_count = 0;
         int brute_count = 0;
         clock_t kd_start, kd_end;
@@ -106,6 +106,18 @@ int main(int argc, char *argv[]) {
         double brute_time;
         char *output_filename;
 
+        // Выделяем память под результаты KD-поиска и brute force.
+        kd_result = malloc(data.count * sizeof(Point));
+        brute_result = malloc(data.count * sizeof(Point));
+
+        if (kd_result == NULL || brute_result == NULL) {
+            printf("Не удалось выделить память для результатов диапазонного поиска\n");
+            free(kd_result);
+            free(brute_result);
+            free_tree(root);
+            free(data.points);
+            return 1;
+        }
         if (argc < 5) {
             printf("Для -kd_range нужно передать диапазон, например: 1.0,2.0,3.0 4.0,5.0,6.0\n");
             return 1;
@@ -137,8 +149,9 @@ int main(int argc, char *argv[]) {
 
         printf("Время KD-Tree: %.6f сек.\n", kd_time);
         printf("Время Brute force: %.6f сек.\n", brute_time);
-
+        
         if (kd_count == brute_count) {
+            // Сортируем результаты перед поэлементным сравнением.
             qsort(kd_result, kd_count, sizeof(Point), compare_points);
             qsort(brute_result, brute_count, sizeof(Point), compare_points);
 
@@ -169,12 +182,8 @@ int main(int argc, char *argv[]) {
             free(output_filename);
         }
 
-        if (save_points_csv("kd_range_result.csv", kd_result, kd_count)) {
-            printf("Результат диапазонного поиска сохранён в kd_range_result.csv\n");
-        }
-        else {
-            printf("Не удалось сохранить результат диапазонного поиска\n");
-        }
+        free(kd_result);
+        free(brute_result);
     }
     else if (strcmp(argv[2], "-cmeans") == 0) {
         printf("Операция Fuzzy C-means будет реализована позже.\n");
