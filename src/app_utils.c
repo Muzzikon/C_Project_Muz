@@ -1,3 +1,4 @@
+// Реализация вспомогательных функций проекта.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +39,7 @@ int parse_query_point(const char *text, Point *point) {
     return text[pos] == '\0';
 }
 
+// Подбирает имя файла для результата DBSCAN.
 char *make_dbscan_output_filename(const char *input_filename) {
     const char *base;
     const char *dot;
@@ -99,6 +101,7 @@ char *make_dbscan_output_filename(const char *input_filename) {
     }
 }
 
+// Подбирает имя файла для результата диапазонного поиска.
 char *make_range_output_filename(const char *input_filename) {
     const char *base;
     const char *dot;
@@ -189,6 +192,7 @@ PointArray load_points_array_from_csv(const char *filename) {
         if (parse_csv_point(line, &point)) {
             if (arr.count >= capacity) {
                 capacity *= 2;
+                // Увеличиваем массив, если текущей ёмкости уже не хватает.
                 Point *tmp = realloc(arr.points, capacity * sizeof(Point));
                 if (tmp == NULL) {
                     free(arr.points);
@@ -272,6 +276,7 @@ int points_equal(Point *a, Point *b, int count) {
     return 1;
 }
 
+// Записывает найденные точки в CSV.
 int save_points_csv(const char *filename, Point *points, int count) {
     FILE *file;
 
