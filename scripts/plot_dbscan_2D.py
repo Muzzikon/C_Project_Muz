@@ -66,7 +66,7 @@ def plot_dbscan(points, output_filename):
 
 def main():
     if len(sys.argv) < 2:
-        print("Использование: python3 scripts/plot_dbscan_2d.py <dbscan_csv>")
+        print("Использование: python3 scripts/plot_dbscan_2D.py <dbscan_csv>")
         return 1
 
     input_filename = sys.argv[1]
