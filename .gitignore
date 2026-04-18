@@ -7,4 +7,6 @@ bin/
 *.csv
 *.zip
 
+Results/
+
 robot_spatial
