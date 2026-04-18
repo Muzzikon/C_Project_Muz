@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+
 #include "io_utils.h"
 
 // Универсальный разбор точки из строки.
@@ -55,6 +59,53 @@ static int file_exists(const char *filename) {
     return 0;
 }
 
+static FILE *open_input_csv(const char *filename) {
+    FILE *file;
+    char fallback_path[512];
+
+    if (filename == NULL) {
+        return NULL;
+    }
+
+    file = fopen(filename, "r");
+    if (file != NULL) {
+        return file;
+    }
+
+    if (strchr(filename, '/') != NULL) {
+        return NULL;
+    }
+
+    snprintf(fallback_path, sizeof(fallback_path), "Tests/%s", filename);
+    return fopen(fallback_path, "r");
+}
+
+static int ensure_directory(const char *path) {
+    struct stat st;
+
+    if (stat(path, &st) == 0) {
+        return S_ISDIR(st.st_mode);
+    }
+
+    if (mkdir(path, 0777) == 0) {
+        return 1;
+    }
+
+    return errno == EEXIST;
+}
+
+static int ensure_csv_results_dirs(void) {
+    if (!ensure_directory("Results")) {
+        return 0;
+    }
+
+    if (!ensure_directory("Results/CSV")) {
+        return 0;
+    }
+
+    return 1;
+}
+
 // Подбирает уникальное имя выходного CSV-файла.
 static char *make_output_filename(const char *input_filename, const char *suffix) {
     const char *base;
@@ -63,10 +114,10 @@ static char *make_output_filename(const char *input_filename, const char *suffix
     char *output_filename;
     int counter = 0;
 
-    if (input_filename == NULL || suffix == NULL) {
-        return NULL;
-    }
+    if (input_filename == NULL || suffix == NULL) return NULL;
 
+    if (!ensure_csv_results_dirs()) return NULL;
+    
     base = strrchr(input_filename, '/');
     if (base != NULL) {
         base++;
@@ -87,30 +138,23 @@ static char *make_output_filename(const char *input_filename, const char *suffix
         int needed;
 
         if (counter == 0) {
-            needed = snprintf(NULL, 0, "%.*s_%s.csv", (int)name_len, base, suffix);
+            needed = snprintf(NULL, 0, "Results/CSV/%.*s_%s.csv", (int)name_len, base, suffix);
             output_filename = malloc((size_t)needed + 1);
-            if (output_filename == NULL) {
-                return NULL;
-            }
 
-            snprintf(output_filename, (size_t)needed + 1,
-                     "%.*s_%s.csv", (int)name_len, base, suffix);
+            if (output_filename == NULL) return NULL;
+
+            snprintf(output_filename, (size_t)needed + 1, "Results/CSV/%.*s_%s.csv", (int)name_len, base, suffix);
         }
         else {
-            needed = snprintf(NULL, 0, "%.*s_%s(%d).csv",
-                              (int)name_len, base, suffix, counter);
+            needed = snprintf(NULL, 0, "Results/CSV/%.*s_%s(%d).csv", (int)name_len, base, suffix, counter);
             output_filename = malloc((size_t)needed + 1);
-            if (output_filename == NULL) {
-                return NULL;
-            }
 
-            snprintf(output_filename, (size_t)needed + 1,
-                     "%.*s_%s(%d).csv", (int)name_len, base, suffix, counter);
+            if (output_filename == NULL) return NULL;
+
+            snprintf(output_filename, (size_t)needed + 1, "Results/CSV/%.*s_%s(%d).csv", (int)name_len, base, suffix, counter);
         }
 
-        if (!file_exists(output_filename)) {
-            return output_filename;
-        }
+        if (!file_exists(output_filename)) return output_filename;
 
         free(output_filename);
         counter++;
@@ -131,7 +175,7 @@ char *make_insert_output_filename(const char *input_filename) {
 
 // Загружает точки из CSV в динамический массив.
 PointArray load_points_array_from_csv(const char *filename) {
-    FILE *file = fopen(filename, "r");
+    FILE *file = open_input_csv(filename);
     char line[256];
     PointArray arr;
     int capacity = 1024;

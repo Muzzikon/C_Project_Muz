@@ -41,6 +41,7 @@ int main(int argc, char *argv[]) {
     PointArray data = load_points_array_from_csv(argv[1]);
     if (data.count < 0) {
         printf("Не удалось загрузить точки из CSV-файла: %s\n", argv[1]);
+        printf("Проверьте, что файл существует по указанному пути или находится в папке Tests/\n");
         return 1;
     }
 
