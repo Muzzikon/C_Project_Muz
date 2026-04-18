@@ -61,7 +61,17 @@ C_Project_Muz/
 │   ├── kd_tree.c
 │   └── main.c
 ├── scripts/
-│   └── plot_dbscan_2D.py
+│   ├── plot_dbscan_2D.py
+│   ├── plot_nearest_2D.py
+│   ├── plot_points_2D.py
+│   └── plot_range_2D.py
+├── Tests/
+│   ├── Circle_xyz.csv
+│   ├── Random1_xyz.csv
+│   ├── Random2_xyz.csv
+│   ├── Still_xyz.csv
+│   ├── Zigzag_xyz.csv
+│   └── дополнительные исходные *_cloud.csv
 ├── README.md
 └── .gitignore
 ```
@@ -188,6 +198,9 @@ x,y,z
 
 ## Поддерживаемые режимы
 
+Для аргументов командной строки точки можно передавать как в формате `x,y,z`,
+так и в формате `x,y`. Во втором случае координата `z` автоматически считается равной `0`.
+
 ### 1. Вставка новой точки
 
 ```bash
@@ -209,11 +222,12 @@ x,y,z
 Примеры имён выходных файлов:
 
 ```text
-Still_xyz_inserted.csv
-Circle_xyz_inserted.csv
-Random1_xyz_inserted.csv
+Results/CSV/Still_xyz_inserted.csv
+Results/CSV/Circle_xyz_inserted.csv
+Results/CSV/Random1_xyz_inserted.csv
 ```
 
+Каталог `Results/CSV` создаётся автоматически при первом сохранении.
 Если файл уже существует, создаётся новый с нумерацией.
 
 ---
@@ -260,9 +274,9 @@ Random1_xyz_inserted.csv
 Примеры имён выходных файлов:
 
 ```text
-Still_xyz_range.csv
-Circle_xyz_range.csv
-Random1_xyz_range.csv
+Results/CSV/Still_xyz_range.csv
+Results/CSV/Circle_xyz_range.csv
+Results/CSV/Random1_xyz_range.csv
 ```
 
 Если файл уже существует, создаётся новый с нумерацией.
@@ -298,9 +312,9 @@ x,y,z,cluster
 Примеры имён выходных файлов:
 
 ```text
-Still_xyz_dbscan.csv
-Random2_xyz_dbscan.csv
-Circle_xyz_dbscan.csv
+Results/CSV/Still_xyz_dbscan.csv
+Results/CSV/Random2_xyz_dbscan.csv
+Results/CSV/Circle_xyz_dbscan.csv
 ```
 
 Если такой файл уже существует, создаётся новый с нумерацией.
@@ -321,7 +335,8 @@ Circle_xyz_dbscan.csv
 
 ## Проверенные сценарии
 
-Проект был вручную протестирован на пяти внешних наборах точек формата `x,y,z`:
+Основные тестовые CSV для проверки сценариев находятся в папке `Tests/`.
+Часть более крупных или вспомогательных файлов может использоваться только локально.
 
 - `Tests/Circle_xyz.csv`
 - `Tests/Random1_xyz.csv`
@@ -337,6 +352,9 @@ Circle_xyz_dbscan.csv
 
 Тестовые CSV использовались локально при проверке и не обязательно входят в состав самого репозитория.
 
+Программа принимает либо полный путь к CSV-файлу, либо короткое имя файла.
+Если передано только имя без пути, программа сначала ищет файл по указанному имени,
+а затем автоматически пробует открыть его из папки `Tests/`.
 ---
 
 ## Подтверждённые результаты
@@ -402,7 +420,7 @@ min_pts = 5
 - алгоритм завершился без ошибок;
 - результат был сохранён в CSV формата `x,y,z,cluster`.
 
-### `KD-Tree`: вставка точки
+### `KD-Tree`: insert
 
 Для проверки вставки использовалась точка:
 
@@ -420,29 +438,60 @@ min_pts = 5
 
 ---
 
-## 2D-визуализация DBSCAN
+## 2D-визуализации
 
-Для построения 2D-визуализации результата `DBSCAN` используется Python-скрипт:
+В проекте есть несколько Python-скриптов для построения 2D-визуализаций по осям X-Y.
 
-```bash
-python3 scripts/plot_dbscan_2D.py <dbscan_result.csv>
-```
-
-Примеры:
+### 1. Исходные точки
 
 ```bash
-python3 scripts/plot_dbscan_2D.py Still_xyz_dbscan.csv
-python3 scripts/plot_dbscan_2D.py Random1_xyz_dbscan.csv
+python3 scripts/plot_points_2D.py Tests/Still_xyz.csv
 ```
 
-Результат сохраняется в PNG-файл, например:
+Пример результата:
 
-```text
-Still_xyz_dbscan_2d.png
-Random1_xyz_dbscan_2d.png
+```bash
+Results/PNG/Still_xyz_points_2D.png
 ```
 
-Если `matplotlib` не установлен, можно использовать виртуальное окружение:
+### 2. Ближайший сосед
+
+```bash
+python3 scripts/plot_nearest_2D.py Tests/Still_xyz.csv 0,0,0
+```
+
+Пример результата:
+
+```bash
+Results/PNG/Still_xyz_nearest_2D.png
+```
+
+### 3. Range query
+
+```bash
+python3 scripts/plot_range_2D.py Tests/Still_xyz.csv Results/CSV/Still_xyz_range.csv
+```
+
+Пример результата:
+
+```bash
+Results/PNG/Still_xyz_range_2D.png
+```
+
+### 4. DBSCAN
+
+```bash
+python3 scripts/plot_dbscan_2D.py Results/CSV/Still_xyz_dbscan.csv
+```
+
+Пример результата:
+
+```bash
+Results/PNG/Still_xyz_dbscan_2D.png
+```
+
+Каталог Results/PNG создаётся автоматически.
+Если matplotlib не установлен, можно использовать виртуальное окружение:
 
 ```bash
 python3 -m venv .venv
@@ -475,19 +524,18 @@ pip install matplotlib
 - сравнение `KD-Tree` и `Brute force` по времени;
 - `DBSCAN`;
 - сохранение результатов в CSV;
-- 2D-визуализация результата `DBSCAN`.
+- 2D-визуализации исходных точек, результата nearest neighbor, range query, кластеров `DBSCAN` и шумовых точек.
 
 ---
 
 ## Что ещё можно улучшить
 
 В будущем в проект можно добавить:
-- `Makefile`;
-- автоматическую подготовку сложных CSV;
-- дополнительные визуализации для `range query` и исходных облаков точек;
-- реализацию `Fuzzy C-means`;
-- более подробный отчёт по производительности.
-
+- автоматический запуск визуализаций после выполнения CLI-команд;
+- `Makefile` для сборки проекта одной командой;
+- отдельный режим удаления точки из KD-Tree;
+- более подробный отчёт по производительности на нескольких наборах данных;
+- завершение реализации Fuzzy C-means.
 ---
 
 ## Примеры полного запуска
@@ -495,10 +543,14 @@ pip install matplotlib
 ```bash
 gcc -Wall -Wextra -Werror -std=c11 src/main.c src/kd_tree.c src/dbscan.c src/grid_index.c src/io_utils.c src/bruteforce_utils.c src/cli_handlers.c -Iinclude -lm -o robot_spatial
 
-./robot_spatial Tests/Still_xyz.csv -kd_insert 1234.5,2345.5,3456.5
-./robot_spatial Tests/Still_xyz.csv -kd_nearest 0,0,0
-./robot_spatial Tests/Still_xyz.csv -kd_range -5,-5,-5 5,5,5
 ./robot_spatial Tests/Still_xyz.csv -dbscan 0.5 5
+python3 scripts/plot_dbscan_2D.py Results/CSV/Still_xyz_dbscan.csv
+
+./robot_spatial Tests/Still_xyz.csv -kd_range -5,-5,-5 5,5,5
+python3 scripts/plot_range_2D.py Tests/Still_xyz.csv Results/CSV/Still_xyz_range.csv
+
+python3 scripts/plot_points_2D.py Tests/Still_xyz.csv
+python3 scripts/plot_nearest_2D.py Tests/Still_xyz.csv 0,0,0
 ```
 
 ---
