@@ -123,6 +123,7 @@ DBSCANResult dbscan(Point *points, int count, double eps, int min_pts) {
             result.labels = NULL;
             result.cluster_count = 0;
             result.noise_count = 0;
+            free_grid_index(&grid);
             return result;
         }
 
